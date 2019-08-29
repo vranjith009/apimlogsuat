@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appName": {
+      "value": "azure-event-hub-to-splunk-function"
+    },
+    "appServicePlanType": {
+      "value": "ServicePlan"
+    },
+    "appServicePlanTier": {
+      "value": "Standard"
+    },
+    "appServicePlanName": {
+      "value": "S2"
+    },
+    "appServicePlanCapacity": {
+      "value": 2
+    },
+    "appInsightsLocation": {
+      "value": "West Europe"
+    },
+    "appInsightsName": {
+      "value": "appInsightsInstance"
+    },
+    "githubRepoURL": {
+      "value": "https://github.com/vippsas/azure-event-hub-to-splunk-function.git"
+    },
+    "githubRepoBranch": {
+      "value": "master"
+    },
+    "splunkAddress": {
+      "value": "https://10.40.4.20:8088/services/collector/event"
+    },
+    "splunkCertThumbprint": {
+      "value": ""
+    },
+    "eventHubConnectionString": {
+      "value": ""
+    },
+    "eventHubConsumerGroup": {
+      "value": "$default"
+    }
+  }
+}
