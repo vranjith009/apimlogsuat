@@ -118,7 +118,7 @@ namespace AzureEventHubToSplunkFunction
         }
 
         private static void LogSuccess(int events) =>
-            logger.LogInformation((events > 1) ? $"Successfully sent {events} logs to Splunk!" : $"Successfully sent log to Splunk!");
+            logger.LogInformation((events == 1) ? $"Successfully sent log to Splunk!" : $"Successfully sent {events} logs to Splunk!");
 
         private static string GetEnvironmentVariable(string name) =>
             System.Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process) ?? "";
