@@ -1,0 +1,245 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appName": {
+      "type": "String",
+      "metadata": {
+        "description": "The name of the function app that you wish to create."
+      }
+    },
+    "appServicePlanType": {
+      "defaultValue": "ServicePlan",
+      "allowedValues": [
+        "ServicePlan",
+        "Consumption"
+      ],
+      "type": "String",
+      "metadata": {
+        "description": "The ServicePlan option creates an App Service Plan and is billed according to that plan. The Consumption option bills according to https://azure.microsoft.com/en-gb/pricing/details/functions/."
+      }
+    },
+    "appServicePlanTier": {
+      "defaultValue": "Standard",
+      "allowedValues": [
+        "Free",
+        "Shared",
+        "Basic",
+        "Standard",
+        "Premium",
+        "Isolated"
+      ],
+      "type": "String"
+    },
+    "appServicePlanName": {
+      "defaultValue": "S1",
+      "type": "String"
+    },
+    "appServicePlanCapacity": {
+      "defaultValue": 2,
+      "type": "Int"
+    },
+    "appInsightsLocation": {
+      "defaultValue": "West Europe",
+      "allowedValues": [
+        "Australia East",
+        "Canada Central",
+        "Central India",
+        "East US",
+        "France Central",
+        "Japan East",
+        "Korea Central",
+        "North Europe",
+        "South Central US",
+        "Southeast Asia",
+        "UK South",
+        "UK West",
+        "West Europe",
+        "West US 2"
+      ],
+      "type": "String"
+    },
+    "appInsightsName": {
+      "defaultValue": "appInsightsInstance",
+      "type": "String"
+    },
+    "githubRepoURL": {
+      "type": "String"
+    },
+    "githubRepoBranch": {
+      "defaultValue": "master",
+      "type": "String"
+    },
+    "eventHubConnectionString": {
+      "defaultValue": "Endpoint=sb://YOURNAMESPACE.servicebus.windows.net/;SharedAccessKeyName=YOURPOLICYNAME;SharedAccessKey=YOURPOLICYKEY",
+      "type": "String"
+    },
+    "splunkToken": {
+      "type": "String"
+    },
+    "splunkAddress": {
+      "type": "String"
+    },
+    "splunkCertThumbprint": {
+      "defaultValue": "b5b797549ccda5b05ee9482dcd79732a99dfdb96",
+      "type": "String"
+    },
+    "eventHubName": {
+      "type": "String"
+    },
+    "eventHubConsumerGroup": {
+      "type": "String"
+    }
+  },
+  "variables": {
+    "alwaysOnAvail0": "[equals(parameters('appServicePlanType'),'ServicePlan')]",
+    "alwaysOnAvail1": "[equals(parameters('appServicePlanTier'),'Standard')]",
+    "alwaysOnAvail2": "[equals(parameters('appServicePlanTier'),'Basic')]",
+    "alwaysOnAvail3": "[equals(parameters('appServicePlanTier'),'Premium')]",
+    "alwaysOnAvail4": "[equals(parameters('appServicePlanTier'),'Isolated')]",
+    "alwaysOnAvaila": "[or(variables('alwaysOnAvail1'), variables('alwaysOnAvail2'))]",
+    "alwaysOnAvailb": "[or(variables('alwaysOnAvail3'), variables('alwaysOnAvail4'))]",
+    "alwaysOnAvailc": "[or(variables('alwaysOnAvaila'), variables('alwaysOnAvailb'))]",
+    "alwaysOnAvailable": "[and(variables('alwaysOnAvail0'), variables('alwaysOnAvailc'))]",
+    "functionAppName": "[parameters('appName')]",
+    "ServicePlanName": "[concat('sp-', parameters('appName'))]",
+    "ConsumptionName": "[concat('cn-', parameters('appName'))]",
+    "hostingPlanName": "[variables(concat(parameters('appServicePlanType'), 'Name'))]",
+    "storageAccountName": "[concat('func', uniquestring(resourceGroup().id))]",
+    "storageAccountid": "[concat(resourceGroup().id,'/providers/','Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2015-06-15",
+      "name": "[variables('storageAccountName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "accountType": "Standard_LRS"
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2015-05-01",
+      "name": "[parameters('appInsightsName')]",
+      "location": "[parameters('appInsightsLocation')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "Flow_Type": "Bluefield",
+        "Request_Source": "rest"
+      }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2016-09-01",
+      "name": "[variables('ServicePlanName')]",
+      "location": "[resourceGroup().location]",
+      "sku": {
+        "tier": "[parameters('appServicePlanTier')]",
+        "name": "[parameters('appServicePlanName')]",
+        "capacity": "[parameters('appServicePlanCapacity')]"
+      },
+      "condition": "[equals(parameters('appServicePlanType'), 'ServicePlan')]"
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2015-04-01",
+      "name": "[variables('ConsumptionName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "name": "[variables('ConsumptionName')]",
+        "computeMode": "Dynamic",
+        "sku": "Dynamic"
+      },
+      "condition": "[equals(parameters('appServicePlanType'), 'Consumption')]"
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2016-08-01",
+      "name": "[variables('functionAppName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+        "[resourceId('Microsoft.Insights/components', parameters('appInsightsName'))]"
+      ],
+      "kind": "functionapp",
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+        "siteConfig": {
+          "alwaysOn": "[variables('alwaysOnAvailable')]",
+          "appSettings": [
+            {
+              "name": "AzureWebJobsDashboard",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountid'),'2015-05-01-preview').key1)]"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountid'),'2015-05-01-preview').key1)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountid'),'2015-05-01-preview').key1)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[toLower(variables('functionAppName'))]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~2"
+            },
+            {
+              "name": "WEBSITE_NODE_DEFAULT_VERSION",
+              "value": "6.5.0"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '2015-05-01').InstrumentationKey]"
+            },
+            {
+              "name": "eventHubConnectionString",
+              "value": "[parameters('eventHubConnectionString')]"
+            },
+            {
+              "name": "splunkToken",
+              "value": "[parameters('splunkToken')]"
+            },
+            {
+              "name": "splunkAddress",
+              "value": "[parameters('splunkAddress')]"
+            },
+            {
+              "name": "splunkCertThumbprint",
+              "value": "[parameters('splunkCertThumbprint')]"
+            },
+            {
+              "name": "eventHubName",
+              "value": "[parameters('eventHubName')]"
+            },
+            {
+              "name": "eventHubConsumerGroup",
+              "value": "[parameters('eventHubConsumerGroup')]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "type": "sourcecontrols",
+          "apiVersion": "2016-08-01",
+          "name": "web",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]"
+          ],
+          "properties": {
+            "RepoUrl": "[parameters('githubRepoURL')]",
+            "branch": "[parameters('githubRepoBranch')]",
+            "IsManualIntegration": true
+          }
+        }
+      ]
+    }
+  ]
+}
