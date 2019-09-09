@@ -9,7 +9,10 @@ Logs that fail validation or being sent to Splunk will throw an exception that w
 Logs will **not** be retried. They are gone if they fail.
 
 ## Splunk index
-The Splunk index is not set in this function or its config, it is decided by the Splunk token.
+The Splunk index is decided by the Splunk token, set in the config during setup in the Azure Portal.
+
+## Event Hub
+The Azure Function connects to the Event Hub with a connection string, set in the config during setup in the Azure Portal.
 
 ## Logging format
 To get logs into Splunk, they must be in a specific format. This function will make sure all logs are in that format.
@@ -18,7 +21,7 @@ To be able to convert logs to the Splunk format, the function requires all logs 
 - `time`, used as the log `time` in Splunk.
 - `source` or `app`, used as `source` in Splunk.
 
-> For more information about logging see the [Payments Engine Logging Standard in Confluence](https://vippsas.atlassian.net/wiki/spaces/TCP/pages/965247506/Payments+Engine+and+VaaM+logging+standard).
+> For more information about logging see the [Payments Engine and VaaM Logging Standard in Confluence](https://vippsas.atlassian.net/wiki/spaces/TCP/pages/965247506/Payments+Engine+and+VaaM+logging+standard).
 
 ### Example application log
 ```json
